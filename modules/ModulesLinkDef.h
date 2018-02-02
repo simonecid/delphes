@@ -70,6 +70,8 @@
 #include "modules/VertexFinder.h"
 #include "modules/VertexFinderDA4D.h"
 #include "modules/ExampleModule.h"
+#include "modules/SetPositionEtaPhiToMomentum.h"
+#include "modules/PrintPositionAndMomentum.h"
 
 #ifdef __CINT__
 
@@ -122,5 +124,7 @@
 #pragma link C++ class VertexFinder+;
 #pragma link C++ class VertexFinderDA4D+;
 #pragma link C++ class ExampleModule+;
+#pragma link C++ class SetPositionEtaPhiToMomentum+;
+#pragma link C++ class PrintPositionAndMomentum+;
 
 #endif
