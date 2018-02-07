@@ -99,6 +99,7 @@ void PileUpMerger::Init()
   // create output arrays
   fParticleOutputArray = ExportArray(GetString("ParticleOutputArray", "stableParticles"));
   fVertexOutputArray = ExportArray(GetString("VertexOutputArray", "vertices"));
+
 }
 
 //------------------------------------------------------------------------------
@@ -254,7 +255,7 @@ void PileUpMerger::Process()
       candidate->Charge = pdgParticle ? Int_t(pdgParticle->Charge()/3.0) : -999;
       candidate->Mass = pdgParticle ? pdgParticle->Mass() : -999.9;
 
-      candidate->IsPU = 1;
+      candidate->IsPU = event + 1;
 
       candidate->Momentum.SetPxPyPzE(px, py, pz, e);
       candidate->Momentum.RotateZ(dphi);
@@ -295,7 +296,7 @@ void PileUpMerger::Process()
     vertex->SumPT2 = sumpt2;
     vertex->GenSumPT2 = sumpt2;
 
-    vertex->IsPU = 1;
+    vertex->IsPU = event + 1;
 
     fVertexOutputArray->Add(vertex);
 
