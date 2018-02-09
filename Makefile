@@ -391,7 +391,9 @@ tmp/modules/ModulesDict.$(SrcSuf): \
 	modules/VertexSorter.h \
 	modules/VertexFinder.h \
 	modules/VertexFinderDA4D.h \
-	modules/ExampleModule.h
+	modules/ExampleModule.h \
+	modules/SetPositionEtaPhiToMomentum.h \
+	modules/PrintPositionAndMomentum.h
 tmp/modules/ModulesDict$(PcmSuf): \
 	tmp/modules/ModulesDict.$(SrcSuf)
 ModulesDict$(PcmSuf): \
@@ -409,6 +411,7 @@ DELPHES_DICT_PCM +=  \
 tmp/modules/FastJetDict.$(SrcSuf): \
 	modules/FastJetLinkDef.h \
 	modules/FastJetFinder.h \
+	modules/FastJetFinderPileUp.h \
 	modules/FastJetGridMedianEstimator.h \
 	modules/RunPUPPI.h
 tmp/modules/FastJetDict$(PcmSuf): \
@@ -847,9 +850,27 @@ tmp/modules/PileUpMergerPythia8.$(ObjSuf): \
 	external/ExRootAnalysis/ExRootResult.h \
 	external/ExRootAnalysis/ExRootFilter.h \
 	external/ExRootAnalysis/ExRootClassifier.h
+tmp/modules/PrintPositionAndMomentum.$(ObjSuf): \
+	modules/PrintPositionAndMomentum.$(SrcSuf) \
+	modules/PrintPositionAndMomentum.h \
+	classes/DelphesClasses.h \
+	classes/DelphesFactory.h \
+	classes/DelphesFormula.h \
+	external/ExRootAnalysis/ExRootResult.h \
+	external/ExRootAnalysis/ExRootFilter.h \
+	external/ExRootAnalysis/ExRootClassifier.h
 tmp/modules/RecoPuFilter.$(ObjSuf): \
 	modules/RecoPuFilter.$(SrcSuf) \
 	modules/RecoPuFilter.h \
+	classes/DelphesClasses.h \
+	classes/DelphesFactory.h \
+	classes/DelphesFormula.h \
+	external/ExRootAnalysis/ExRootResult.h \
+	external/ExRootAnalysis/ExRootFilter.h \
+	external/ExRootAnalysis/ExRootClassifier.h
+tmp/modules/SetPositionEtaPhiToMomentum.$(ObjSuf): \
+	modules/SetPositionEtaPhiToMomentum.$(SrcSuf) \
+	modules/SetPositionEtaPhiToMomentum.h \
 	classes/DelphesClasses.h \
 	classes/DelphesFactory.h \
 	classes/DelphesFormula.h \
@@ -1067,7 +1088,9 @@ DELPHES_OBJ +=  \
 	tmp/modules/PhotonConversions.$(ObjSuf) \
 	tmp/modules/PileUpJetID.$(ObjSuf) \
 	tmp/modules/PileUpMerger.$(ObjSuf) \
+	tmp/modules/PrintPositionAndMomentum.$(ObjSuf) \
 	tmp/modules/RecoPuFilter.$(ObjSuf) \
+	tmp/modules/SetPositionEtaPhiToMomentum.$(ObjSuf) \
 	tmp/modules/SimpleCalorimeter.$(ObjSuf) \
 	tmp/modules/StatusPidFilter.$(ObjSuf) \
 	tmp/modules/TaggingParticlesSkimmer.$(ObjSuf) \
@@ -1427,6 +1450,32 @@ tmp/modules/FastJetFinder.$(ObjSuf): \
 	external/fastjet/tools/Filter.hh \
 	external/fastjet/tools/Pruner.hh \
 	external/fastjet/contribs/RecursiveTools/SoftDrop.hh
+tmp/modules/FastJetFinderPileUp.$(ObjSuf): \
+	modules/FastJetFinderPileUp.$(SrcSuf) \
+	modules/FastJetFinderPileUp.h \
+	classes/DelphesClasses.h \
+	classes/DelphesFactory.h \
+	classes/DelphesFormula.h \
+	external/ExRootAnalysis/ExRootResult.h \
+	external/ExRootAnalysis/ExRootFilter.h \
+	external/ExRootAnalysis/ExRootClassifier.h \
+	external/fastjet/PseudoJet.hh \
+	external/fastjet/JetDefinition.hh \
+	external/fastjet/ClusterSequence.hh \
+	external/fastjet/Selector.hh \
+	external/fastjet/ClusterSequenceArea.hh \
+	external/fastjet/tools/JetMedianBackgroundEstimator.hh \
+	external/fastjet/plugins/SISCone/fastjet/SISConePlugin.hh \
+	external/fastjet/plugins/CDFCones/fastjet/CDFMidPointPlugin.hh \
+	external/fastjet/plugins/CDFCones/fastjet/CDFJetCluPlugin.hh \
+	external/fastjet/contribs/Nsubjettiness/Nsubjettiness.hh \
+	external/fastjet/contribs/Nsubjettiness/Njettiness.hh \
+	external/fastjet/contribs/Nsubjettiness/NjettinessPlugin.hh \
+	external/fastjet/contribs/Nsubjettiness/ExtraRecombiners.hh \
+	external/fastjet/contribs/ValenciaPlugin/ValenciaPlugin.hh \
+	external/fastjet/tools/Filter.hh \
+	external/fastjet/tools/Pruner.hh \
+	external/fastjet/contribs/RecursiveTools/SoftDrop.hh
 tmp/modules/FastJetGridMedianEstimator.$(ObjSuf): \
 	modules/FastJetGridMedianEstimator.$(SrcSuf) \
 	modules/FastJetGridMedianEstimator.h \
@@ -1560,6 +1609,7 @@ FASTJET_OBJ +=  \
 	tmp/external/fastjet/tools/Subtractor.$(ObjSuf) \
 	tmp/external/fastjet/tools/TopTaggerBase.$(ObjSuf) \
 	tmp/modules/FastJetFinder.$(ObjSuf) \
+	tmp/modules/FastJetFinderPileUp.$(ObjSuf) \
 	tmp/modules/FastJetGridMedianEstimator.$(ObjSuf) \
 	tmp/modules/RunPUPPI.$(ObjSuf)
 
@@ -1761,6 +1811,10 @@ modules/ConstituentFilter.h: \
 	classes/DelphesModule.h
 	@touch $@
 
+modules/PrintPositionAndMomentum.h: \
+	classes/DelphesModule.h
+	@touch $@
+
 modules/Calorimeter.h: \
 	classes/DelphesModule.h
 	@touch $@
@@ -1953,6 +2007,10 @@ modules/MomentumSmearing.h: \
 	classes/DelphesModule.h
 	@touch $@
 
+modules/SetPositionEtaPhiToMomentum.h: \
+	classes/DelphesModule.h
+	@touch $@
+
 modules/TauTagging.h: \
 	classes/DelphesModule.h \
 	external/ExRootAnalysis/ExRootResult.h \
@@ -1991,6 +2049,10 @@ modules/UniqueObjectFinder.h: \
 	@touch $@
 
 modules/TrackCountingBTagging.h: \
+	classes/DelphesModule.h
+	@touch $@
+
+modules/FastJetFinderPileUp.h: \
 	classes/DelphesModule.h
 	@touch $@
 
