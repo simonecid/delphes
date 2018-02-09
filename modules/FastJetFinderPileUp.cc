@@ -318,6 +318,7 @@ void FastJetFinderPileUp::Finish()
 
 void FastJetFinderPileUp::Process()
 {
+  //std::cout << "RUNNING FAST JET FINDER PILE UP" << std::endl;
   Candidate *candidate, *constituent;
   TLorentzVector momentum;
 
@@ -340,218 +341,237 @@ void FastJetFinderPileUp::Process()
   fItInputArray->Reset();
 
   number = 0;
-  while((candidate = static_cast<Candidate*>(fItInputArray->Next())))
-  {
-    std::cout << candidate -> IsPU() << std::endl;
-    momentum = candidate->Momentum;
-    jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
-    jet.set_user_index(number);
-    inputList.push_back(jet);
-    ++number;
-  }
-
-  // construct jets
-  if(fAreaDefinition)
-  {
-    sequence = new ClusterSequenceArea(inputList, *fDefinition, *fAreaDefinition);
-  }
-  else
-  {
-    sequence = new ClusterSequence(inputList, *fDefinition);
-  }
-
-  // compute rho and store it
-  if(fComputeRho && fAreaDefinition)
-  {
-    for(itEstimators = fEstimators.begin(); itEstimators != fEstimators.end(); ++itEstimators)
-    {
-      itEstimators->estimator->set_particles(inputList);
-      rho = itEstimators->estimator->rho();
-
-      candidate = factory->NewCandidate();
-      candidate->Momentum.SetPtEtaPhiE(rho, 0.0, 0.0, rho);
-      candidate->Edges[0] = itEstimators->etaMin;
-      candidate->Edges[1] = itEstimators->etaMax;
-      fRhoOutputArray->Add(candidate);
-    }
-  }
-
-  outputList.clear();
-
-  if(fExclusiveClustering)
-    {
-      outputList = sorted_by_pt(sequence->exclusive_jets( fNJets ));
-    }
-  else
-    {
-      outputList = sorted_by_pt(sequence->inclusive_jets(fJetPTMin));
-    }
-
-  // loop over all jets and export them
-  detaMax = 0.0;
-  dphiMax = 0.0;
+  bool notOver = true;
+  Candidate * jetConstituentCandidate, * prevJetConstituentCandidate;
+  jetConstituentCandidate = static_cast<Candidate*>(fItInputArray->Next());
+  prevJetConstituentCandidate = NULL;
+  vector< PseudoJet > inputJetConstituentCandidateList;
+  inputJetConstituentCandidateList.clear();
   
-  for(itOutputList = outputList.begin(); itOutputList != outputList.end(); ++itOutputList)
-  {
-    jet = *itOutputList;
-    if(fJetAlgorithm == 7) jet = join(jet.constituents());
+  do {
+    //if ((prevJetConstituentCandidate != NULL) && (jetConstituentCandidate != NULL)) std::cout << prevJetConstituentCandidate -> IsPU << " == " << jetConstituentCandidate -> IsPU << std::endl;
 
-    momentum.SetPxPyPzE(jet.px(), jet.py(), jet.pz(), jet.E());
-
-    area.reset(0.0, 0.0, 0.0, 0.0);
-    if(fAreaDefinition) area = itOutputList->area_4vector();
-
-    candidate = factory->NewCandidate();
-
-    time = 0.0;
-    timeWeight = 0.0;
-
-    charge = 0;
-
-    ncharged = 0;
-    nneutrals = 0;
-
-    inputList.clear();
-    inputList = sequence->constituents(*itOutputList);
-
-    for(itInputList = inputList.begin(); itInputList != inputList.end(); ++itInputList)
-    {
-      if(itInputList->user_index() < 0) continue;
-      constituent = static_cast<Candidate*>(fInputArray->At(itInputList->user_index()));
-
-      deta = TMath::Abs(momentum.Eta() - constituent->Momentum.Eta());
-      dphi = TMath::Abs(momentum.DeltaPhi(constituent->Momentum));
-      if(deta > detaMax) detaMax = deta;
-      if(dphi > dphiMax) dphiMax = dphi;
-
-      if(constituent->Charge == 0) nneutrals++;
-      else ncharged++;
-
-      time += TMath::Sqrt(constituent->Momentum.E())*(constituent->Position.T());
-      timeWeight += TMath::Sqrt(constituent->Momentum.E());
-
-      charge += constituent->Charge;
-
-      candidate->AddCandidate(constituent);
+    if ((jetConstituentCandidate != NULL) && ((prevJetConstituentCandidate == NULL) || (prevJetConstituentCandidate -> IsPU == jetConstituentCandidate -> IsPU))) {
+      momentum = jetConstituentCandidate->Momentum;
+      jet = PseudoJet(momentum.Px(), momentum.Py(), momentum.Pz(), momentum.E());
+      jet.set_user_index(number);
+      inputJetConstituentCandidateList.push_back(jet);
+      ++number;
+      prevJetConstituentCandidate = jetConstituentCandidate;
+      jetConstituentCandidate = static_cast<Candidate*>(fItInputArray->Next());
     }
+    else {
+      if (jetConstituentCandidate == NULL) notOver = false;
 
-    candidate->Momentum = momentum;
-    candidate->Position.SetT(time/timeWeight);
-    candidate->Area.SetPxPyPzE(area.px(), area.py(), area.pz(), area.E());
+      // construct jets
+      if(fAreaDefinition)
+      {
+        sequence = new ClusterSequenceArea(inputJetConstituentCandidateList, *fDefinition, *fAreaDefinition);
+      }
+      else
+      {
+        sequence = new ClusterSequence(inputJetConstituentCandidateList, *fDefinition);
+      }
 
-    candidate->DeltaEta = detaMax;
-    candidate->DeltaPhi = dphiMax;
-    candidate->Charge = charge; 
-    candidate->NNeutrals = nneutrals;
-    candidate->NCharged = ncharged;
-    
-    //------------------------------------
-    // Trimming
-    //------------------------------------
+      // compute rho and store it
+      if(fComputeRho && fAreaDefinition)
+      {
+        for(itEstimators = fEstimators.begin(); itEstimators != fEstimators.end(); ++itEstimators)
+        {
+          itEstimators->estimator->set_particles(inputJetConstituentCandidateList);
+          rho = itEstimators->estimator->rho();
 
-    if(fComputeTrimming)
-    {
+          candidate = factory->NewCandidate();
+          candidate->Momentum.SetPtEtaPhiE(rho, 0.0, 0.0, rho);
+          candidate->Edges[0] = itEstimators->etaMin;
+          candidate->Edges[1] = itEstimators->etaMax;
+          fRhoOutputArray->Add(candidate);
+        }
+      }
 
-      fastjet::Filter    trimmer(fastjet::JetDefinition(fastjet::kt_algorithm,fRTrim),fastjet::SelectorPtFractionMin(fPtFracTrim));
-      fastjet::PseudoJet trimmed_jet = trimmer(*itOutputList);
+      outputList.clear();
+
+      if(fExclusiveClustering)
+        {
+          outputList = sorted_by_pt(sequence->exclusive_jets( fNJets ));
+        }
+      else
+        {
+          outputList = sorted_by_pt(sequence->inclusive_jets(fJetPTMin));
+        }
+
+      // loop over all jets and export them
+      detaMax = 0.0;
+      dphiMax = 0.0;
       
-      trimmed_jet = join(trimmed_jet.constituents());
-     
-      candidate->TrimmedP4[0].SetPtEtaPhiM(trimmed_jet.pt(), trimmed_jet.eta(), trimmed_jet.phi(), trimmed_jet.m());
+      for(itOutputList = outputList.begin(); itOutputList != outputList.end(); ++itOutputList)
+      {
+        jet = *itOutputList;
+        if(fJetAlgorithm == 7) jet = join(jet.constituents());
+
+        momentum.SetPxPyPzE(jet.px(), jet.py(), jet.pz(), jet.E());
+
+        area.reset(0.0, 0.0, 0.0, 0.0);
+        if(fAreaDefinition) area = itOutputList->area_4vector();
+
+        candidate = factory->NewCandidate();
+
+        time = 0.0;
+        timeWeight = 0.0;
+
+        charge = 0;
+
+        ncharged = 0;
+        nneutrals = 0;
+
+        inputList.clear();
+        inputList = sequence->constituents(*itOutputList);
+
+        for(itInputList = inputList.begin(); itInputList != inputList.end(); ++itInputList)
+        {
+          if(itInputList->user_index() < 0) continue;
+          constituent = static_cast<Candidate*>(fInputArray->At(itInputList->user_index()));
+
+          deta = TMath::Abs(momentum.Eta() - constituent->Momentum.Eta());
+          dphi = TMath::Abs(momentum.DeltaPhi(constituent->Momentum));
+          if(deta > detaMax) detaMax = deta;
+          if(dphi > dphiMax) dphiMax = dphi;
+
+          if(constituent->Charge == 0) nneutrals++;
+          else ncharged++;
+
+          time += TMath::Sqrt(constituent->Momentum.E())*(constituent->Position.T());
+          timeWeight += TMath::Sqrt(constituent->Momentum.E());
+
+          charge += constituent->Charge;
+
+          candidate->AddCandidate(constituent);
+        }
+
+        candidate->Momentum = momentum;
+        candidate->Position.SetT(time/timeWeight);
+        candidate->Area.SetPxPyPzE(area.px(), area.py(), area.pz(), area.E());
+
+        candidate->DeltaEta = detaMax;
+        candidate->DeltaPhi = dphiMax;
+        candidate->Charge = charge; 
+        candidate->NNeutrals = nneutrals;
+        candidate->NCharged = ncharged;
         
-      // four hardest subjets 
-      subjets.clear();
-      subjets = trimmed_jet.pieces();
-      subjets = sorted_by_pt(subjets);
-      
-      candidate->NSubJetsTrimmed = subjets.size();
+        //------------------------------------
+        // Trimming
+        //------------------------------------
 
-      for (size_t i = 0; i < subjets.size() and i < 4; i++)
-      {
-	    if(subjets.at(i).pt() < 0) continue ; 
- 	    candidate->TrimmedP4[i+1].SetPtEtaPhiM(subjets.at(i).pt(), subjets.at(i).eta(), subjets.at(i).phi(), subjets.at(i).m());
-      }
-    }
-    
-    
-    //------------------------------------
-    // Pruning
-    //------------------------------------
-    
-    
-    if(fComputePruning)
-    {
+        if(fComputeTrimming)
+        {
 
-      fastjet::Pruner    pruner(fastjet::JetDefinition(fastjet::cambridge_algorithm,fRPrun),fZcutPrun,fRcutPrun);
-      fastjet::PseudoJet pruned_jet = pruner(*itOutputList);
-
-      candidate->PrunedP4[0].SetPtEtaPhiM(pruned_jet.pt(), pruned_jet.eta(), pruned_jet.phi(), pruned_jet.m());
-         
-      // four hardest subjet 
-      subjets.clear();
-      subjets = pruned_jet.pieces();
-      subjets = sorted_by_pt(subjets);
-      
-      candidate->NSubJetsPruned = subjets.size();
-
-      for (size_t i = 0; i < subjets.size() and i < 4; i++)
-      {
-	    if(subjets.at(i).pt() < 0) continue ; 
-  	    candidate->PrunedP4[i+1].SetPtEtaPhiM(subjets.at(i).pt(), subjets.at(i).eta(), subjets.at(i).phi(), subjets.at(i).m());
-      }
-
-    } 
-     
-    //------------------------------------
-    // SoftDrop
-    //------------------------------------
-   
-    if(fComputeSoftDrop)
-    {
-    
-      contrib::SoftDrop softDrop(fBetaSoftDrop,fSymmetryCutSoftDrop,fR0SoftDrop);
-      fastjet::PseudoJet softdrop_jet = softDrop(*itOutputList);
-      
-      candidate->SoftDroppedP4[0].SetPtEtaPhiM(softdrop_jet.pt(), softdrop_jet.eta(), softdrop_jet.phi(), softdrop_jet.m());
+          fastjet::Filter    trimmer(fastjet::JetDefinition(fastjet::kt_algorithm,fRTrim),fastjet::SelectorPtFractionMin(fPtFracTrim));
+          fastjet::PseudoJet trimmed_jet = trimmer(*itOutputList);
+          
+          trimmed_jet = join(trimmed_jet.constituents());
         
-      // four hardest subjet 
+          candidate->TrimmedP4[0].SetPtEtaPhiM(trimmed_jet.pt(), trimmed_jet.eta(), trimmed_jet.phi(), trimmed_jet.m());
+            
+          // four hardest subjets 
+          subjets.clear();
+          subjets = trimmed_jet.pieces();
+          subjets = sorted_by_pt(subjets);
+          
+          candidate->NSubJetsTrimmed = subjets.size();
+
+          for (size_t i = 0; i < subjets.size() and i < 4; i++)
+          {
+          if(subjets.at(i).pt() < 0) continue ; 
+          candidate->TrimmedP4[i+1].SetPtEtaPhiM(subjets.at(i).pt(), subjets.at(i).eta(), subjets.at(i).phi(), subjets.at(i).m());
+          }
+        }
+        
+        
+        //------------------------------------
+        // Pruning
+        //------------------------------------
+        
+        
+        if(fComputePruning)
+        {
+
+          fastjet::Pruner    pruner(fastjet::JetDefinition(fastjet::cambridge_algorithm,fRPrun),fZcutPrun,fRcutPrun);
+          fastjet::PseudoJet pruned_jet = pruner(*itOutputList);
+
+          candidate->PrunedP4[0].SetPtEtaPhiM(pruned_jet.pt(), pruned_jet.eta(), pruned_jet.phi(), pruned_jet.m());
+            
+          // four hardest subjet 
+          subjets.clear();
+          subjets = pruned_jet.pieces();
+          subjets = sorted_by_pt(subjets);
+          
+          candidate->NSubJetsPruned = subjets.size();
+
+          for (size_t i = 0; i < subjets.size() and i < 4; i++)
+          {
+          if(subjets.at(i).pt() < 0) continue ; 
+            candidate->PrunedP4[i+1].SetPtEtaPhiM(subjets.at(i).pt(), subjets.at(i).eta(), subjets.at(i).phi(), subjets.at(i).m());
+          }
+
+        } 
+        
+        //------------------------------------
+        // SoftDrop
+        //------------------------------------
       
-      subjets.clear();
-      subjets    = softdrop_jet.pieces();
-      subjets    = sorted_by_pt(subjets);
-      candidate->NSubJetsSoftDropped = softdrop_jet.pieces().size();
+        if(fComputeSoftDrop)
+        {
+        
+          contrib::SoftDrop softDrop(fBetaSoftDrop,fSymmetryCutSoftDrop,fR0SoftDrop);
+          fastjet::PseudoJet softdrop_jet = softDrop(*itOutputList);
+          
+          candidate->SoftDroppedP4[0].SetPtEtaPhiM(softdrop_jet.pt(), softdrop_jet.eta(), softdrop_jet.phi(), softdrop_jet.m());
+            
+          // four hardest subjet 
+          
+          subjets.clear();
+          subjets    = softdrop_jet.pieces();
+          subjets    = sorted_by_pt(subjets);
+          candidate->NSubJetsSoftDropped = softdrop_jet.pieces().size();
 
-      candidate->SoftDroppedJet = candidate->SoftDroppedP4[0];
+          candidate->SoftDroppedJet = candidate->SoftDroppedP4[0];
 
-      for (size_t i = 0; i < subjets.size()  and i < 4; i++)
-      {
-	    if(subjets.at(i).pt() < 0) continue ; 
-  	    candidate->SoftDroppedP4[i+1].SetPtEtaPhiM(subjets.at(i).pt(), subjets.at(i).eta(), subjets.at(i).phi(), subjets.at(i).m());
-            if(i==0) candidate->SoftDroppedSubJet1 = candidate->SoftDroppedP4[i+1];
-            if(i==1) candidate->SoftDroppedSubJet2 = candidate->SoftDroppedP4[i+1];
+          for (size_t i = 0; i < subjets.size()  and i < 4; i++)
+          {
+          if(subjets.at(i).pt() < 0) continue ; 
+            candidate->SoftDroppedP4[i+1].SetPtEtaPhiM(subjets.at(i).pt(), subjets.at(i).eta(), subjets.at(i).phi(), subjets.at(i).m());
+                if(i==0) candidate->SoftDroppedSubJet1 = candidate->SoftDroppedP4[i+1];
+                if(i==1) candidate->SoftDroppedSubJet2 = candidate->SoftDroppedP4[i+1];
+          }
+        }
+      
+        // --- compute N-subjettiness with N = 1,2,3,4,5 ----
+
+        if(fComputeNsubjettiness)
+        {
+        
+          Nsubjettiness nSub1(1, *fAxesDef, *fMeasureDef);
+          Nsubjettiness nSub2(2, *fAxesDef, *fMeasureDef);
+          Nsubjettiness nSub3(3, *fAxesDef, *fMeasureDef);
+          Nsubjettiness nSub4(4, *fAxesDef, *fMeasureDef);
+          Nsubjettiness nSub5(5, *fAxesDef, *fMeasureDef);
+        
+          candidate->Tau[0] = nSub1(*itOutputList);
+          candidate->Tau[1] = nSub2(*itOutputList);
+          candidate->Tau[2] = nSub3(*itOutputList);
+          candidate->Tau[3] = nSub4(*itOutputList);
+          candidate->Tau[4] = nSub5(*itOutputList);
+            
+        }
+        //std::cout << "Found a jet w/ pt " << candidate->Momentum.Pt() << std::endl;
+        fOutputArray->Add(candidate);
       }
-    }
-  
-    // --- compute N-subjettiness with N = 1,2,3,4,5 ----
 
-    if(fComputeNsubjettiness)
-    {
-     
-      Nsubjettiness nSub1(1, *fAxesDef, *fMeasureDef);
-      Nsubjettiness nSub2(2, *fAxesDef, *fMeasureDef);
-      Nsubjettiness nSub3(3, *fAxesDef, *fMeasureDef);
-      Nsubjettiness nSub4(4, *fAxesDef, *fMeasureDef);
-      Nsubjettiness nSub5(5, *fAxesDef, *fMeasureDef);
-     
-      candidate->Tau[0] = nSub1(*itOutputList);
-      candidate->Tau[1] = nSub2(*itOutputList);
-      candidate->Tau[2] = nSub3(*itOutputList);
-      candidate->Tau[3] = nSub4(*itOutputList);
-      candidate->Tau[4] = nSub5(*itOutputList);
-         
+      // Setting the new pile-up level
+      prevJetConstituentCandidate = jetConstituentCandidate;
+      inputJetConstituentCandidateList.clear();
     }
+  } while (notOver);
 
-    fOutputArray->Add(candidate);
-  }
   delete sequence;
 }

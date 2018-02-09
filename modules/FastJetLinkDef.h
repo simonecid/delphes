@@ -26,6 +26,7 @@
  */
 
 #include "modules/FastJetFinder.h"
+#include "modules/FastJetFinderPileUp.h"
 #include "modules/FastJetGridMedianEstimator.h"
 #include "modules/RunPUPPI.h"
 
@@ -36,6 +37,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class FastJetFinder+;
+#pragma link C++ class FastJetFinderPileUp+;
 #pragma link C++ class FastJetGridMedianEstimator+;
 #pragma link C++ class RunPUPPI+;
 
